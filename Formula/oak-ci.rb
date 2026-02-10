@@ -10,11 +10,13 @@ class OakCi < Formula
   depends_on "python@3.13"
 
   def install
-    # Create a virtualenv and install oak-ci with pip (uses pre-built wheels).
-    # This avoids sdist-only build failures for native deps like onnxruntime
-    # and flatbuffers, which don't publish source distributions.
-    venv = virtualenv_create(libexec, "python3.13")
-    venv.pip_install "oak-ci==#{version}"
+    # Create a virtualenv and install oak-ci with pip (includes all deps).
+    # We call pip directly instead of venv.pip_install because Homebrew's
+    # helper uses --no-deps (expecting resource stanzas). Some native deps
+    # like onnxruntime and flatbuffers don't publish sdists, so resource
+    # stanzas won't work. pip install with wheels handles everything.
+    virtualenv_create(libexec, "python3.13")
+    system libexec/"bin/pip", "install", "oak-ci==#{version}"
     bin.install_symlink libexec/"bin/oak"
   end
 
