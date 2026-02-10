@@ -45,7 +45,7 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
 
       test do
         assert_match version.to_s, shell_output("#{{bin}}/oak version")
-        assert_match "Usage", shell_output("#{{bin}}/oak --help")
+        assert_match "Open Agent Kit", shell_output("#{{bin}}/oak --help")
       end
     end
 """)
