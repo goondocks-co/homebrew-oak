@@ -15,6 +15,7 @@ class OakCi < Formula
     # and flatbuffers, which don't publish source distributions.
     venv = virtualenv_create(libexec, "python3.13")
     venv.pip_install "oak-ci==#{version}"
+    bin.install_symlink libexec/"bin/oak"
   end
 
   test do
