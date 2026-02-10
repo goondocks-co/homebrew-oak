@@ -9,6 +9,11 @@ class OakCi < Formula
 
   depends_on "python@3.13"
 
+  # Prevent Homebrew from rewriting Mach-O headers inside the virtualenv.
+  # Native wheels (cryptography, grpcio, onnxruntime) have pre-built .so
+  # files whose headers can't accommodate Homebrew's longer install paths.
+  skip_clean "libexec"
+
   def install
     # Create a full virtualenv (with pip) and install oak-ci with all deps.
     # We use python -m venv directly (not virtualenv_create) because Homebrew's
