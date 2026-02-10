@@ -21,6 +21,8 @@ from pathlib import Path
 
 FORMULA_TEMPLATE = textwrap.dedent("""\
     class OakCi < Formula
+      include Language::Python::Virtualenv
+
       desc "Codebase intelligence toolkit for development workflows"
       homepage "https://github.com/goondocks-co/open-agent-kit"
       url "{url}"

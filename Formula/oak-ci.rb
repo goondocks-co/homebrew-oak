@@ -1,4 +1,6 @@
 class OakCi < Formula
+  include Language::Python::Virtualenv
+
   desc "Codebase intelligence toolkit for development workflows"
   homepage "https://github.com/goondocks-co/open-agent-kit"
   url "https://files.pythonhosted.org/packages/c0/27/03f31e886161f4d575ccb80629b668e11a4621cc68681779d067b5d5a4a2/oak_ci-1.0.4.tar.gz"
