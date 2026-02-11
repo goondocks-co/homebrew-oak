@@ -26,15 +26,21 @@ jobs:
         env:
           TARGET_VERSION: ${{ inputs.version }}
         run: |
-          for i in $(seq 1 10); do
-            if pip index versions oak-ci 2>/dev/null | grep -q "$TARGET_VERSION"; then
-              echo "oak-ci $TARGET_VERSION found on PyPI"
+          # Use pip download (hits the simple index, same as pip install)
+          # rather than pip index versions (hits the JSON API) to verify
+          # the package is actually installable, not just listed.
+          tmpdir=$(mktemp -d)
+          for i in $(seq 1 20); do
+            if pip download --no-deps "oak-ci==$TARGET_VERSION" -d "$tmpdir" 2>/dev/null; then
+              echo "oak-ci $TARGET_VERSION downloadable from PyPI"
+              rm -rf "$tmpdir"
               exit 0
             fi
-            echo "Waiting for oak-ci $TARGET_VERSION on PyPI... (attempt $i/10)"
+            echo "Waiting for oak-ci $TARGET_VERSION on PyPI... (attempt $i/20)"
             sleep 30
           done
-          echo "::error::oak-ci $TARGET_VERSION not found on PyPI after 5 minutes"
+          rm -rf "$tmpdir"
+          echo "::error::oak-ci $TARGET_VERSION not installable from PyPI after 10 minutes"
           exit 1
 
       - name: Generate formula

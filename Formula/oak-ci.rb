@@ -31,7 +31,17 @@ class OakCi < Formula
     # Install oak-ci AFTER Homebrew's linkage-fixup phase so that native
     # wheels (cryptography, grpcio, onnxruntime) with pre-built .so files
     # are never subjected to Mach-O header rewriting.
-    system libexec/"bin/pip", "install", "oak-ci==#{version}"
+    # Retry with backoff — PyPI CDN can take 1-2 minutes to propagate
+    # a newly published version to all edge nodes.
+    system "bash", "-c", <<~SH
+      for i in 1 2 3 4 5; do
+        "#{libexec}/bin/pip" install "oak-ci==#{version}" && exit 0
+        echo "PyPI not ready yet (attempt $i/5), retrying in 30s..."
+        sleep 30
+      done
+      echo "ERROR: oak-ci #{version} not available on PyPI after 5 attempts"
+      exit 1
+    SH
   end
 
   test do
