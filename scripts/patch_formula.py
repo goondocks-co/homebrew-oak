@@ -31,21 +31,23 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
 
       depends_on "python@3.13"
 
-      # Prevent Homebrew from rewriting Mach-O headers inside the virtualenv.
-      # Native wheels (cryptography, grpcio, onnxruntime) have pre-built .so
-      # files whose headers can't accommodate Homebrew's longer install paths.
-      skip_clean "libexec"
-
       def install
-        # Create a full virtualenv (with pip) and install oak-ci with all deps.
-        # We use python -m venv directly (not virtualenv_create) because Homebrew's
-        # helper passes --without-pip. We need pip to install oak-ci with pre-built
-        # wheels, since native deps like onnxruntime and flatbuffers lack sdists.
+        # Create a virtualenv with pip. We use python -m venv directly (not
+        # virtualenv_create) because Homebrew's helper passes --without-pip.
         python3 = "python3.13"
         system python3, "-m", "venv", libexec
         system libexec/"bin/pip", "install", "--upgrade", "pip"
-        system libexec/"bin/pip", "install", "oak-ci==#{{version}}"
+
+        # The symlink target (libexec/bin/oak) won't exist until post_install,
+        # but dangling symlinks are fine — Homebrew doesn't validate targets.
         bin.install_symlink libexec/"bin/oak"
+      end
+
+      def post_install
+        # Install oak-ci AFTER Homebrew's linkage-fixup phase so that native
+        # wheels (cryptography, grpcio, onnxruntime) with pre-built .so files
+        # are never subjected to Mach-O header rewriting.
+        system libexec/"bin/pip", "install", "oak-ci==#{{version}}"
       end
 
       test do
