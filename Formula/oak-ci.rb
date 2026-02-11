@@ -15,10 +15,6 @@ class OakCi < Formula
     python3 = "python3.13"
     system python3, "-m", "venv", libexec
     system libexec/"bin/pip", "install", "--upgrade", "pip"
-
-    # The symlink target (libexec/bin/oak) won't exist until post_install,
-    # but dangling symlinks are fine — Homebrew doesn't validate targets.
-    bin.install_symlink libexec/"bin/oak"
   end
 
   def post_install
@@ -26,6 +22,7 @@ class OakCi < Formula
     # wheels (cryptography, grpcio, onnxruntime) with pre-built .so files
     # are never subjected to Mach-O header rewriting.
     system libexec/"bin/pip", "install", "oak-ci==#{version}"
+    bin.install_symlink libexec/"bin/oak"
   end
 
   test do
