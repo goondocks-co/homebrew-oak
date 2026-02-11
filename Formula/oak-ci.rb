@@ -15,6 +15,16 @@ class OakCi < Formula
     python3 = "python3.13"
     system python3, "-m", "venv", libexec
     system libexec/"bin/pip", "install", "--upgrade", "pip"
+
+    # Write a wrapper script that delegates to the real oak binary.
+    # We can't use bin.install_symlink because the target doesn't exist yet
+    # (pip install runs in post_install) and Homebrew's link phase runs
+    # between install and post_install — dangling symlinks get dropped.
+    (bin/"oak").write <<~SH
+      #!/bin/bash
+      exec "#{libexec}/bin/oak" "$@"
+    SH
+    (bin/"oak").chmod 0755
   end
 
   def post_install
@@ -22,7 +32,6 @@ class OakCi < Formula
     # wheels (cryptography, grpcio, onnxruntime) with pre-built .so files
     # are never subjected to Mach-O header rewriting.
     system libexec/"bin/pip", "install", "oak-ci==#{version}"
-    bin.install_symlink libexec/"bin/oak"
   end
 
   test do
