@@ -16,6 +16,13 @@ class OakCi < Formula
     system python3, "-m", "venv", libexec
     system libexec/"bin/pip", "install", "--upgrade", "pip"
 
+    # Pre-build a wheel from the Homebrew-downloaded source and stash it
+    # for post_install. This avoids re-fetching oak-ci from PyPI, which
+    # consistently fails on the first pip invocation after venv creation
+    # (likely due to pip HTTP cache/connection cold-start after self-upgrade).
+    mkdir_p libexec/".wheels"
+    system libexec/"bin/pip", "wheel", "--no-deps", "--wheel-dir=#{libexec}/.wheels", "."
+
     # Write a wrapper script that delegates to the real oak binary.
     # We can't use bin.install_symlink because the target doesn't exist yet
     # (pip install runs in post_install) and Homebrew's link phase runs
@@ -28,20 +35,13 @@ class OakCi < Formula
   end
 
   def post_install
-    # Install oak-ci AFTER Homebrew's linkage-fixup phase so that native
-    # wheels (cryptography, grpcio, onnxruntime) with pre-built .so files
-    # are never subjected to Mach-O header rewriting.
-    # Retry with backoff — PyPI CDN can take 1-2 minutes to propagate
-    # a newly published version to all edge nodes.
-    system "bash", "-c", <<~SH
-      for i in 1 2 3 4 5; do
-        "#{libexec}/bin/pip" install "oak-ci==#{version}" && exit 0
-        echo "PyPI not ready yet (attempt $i/5), retrying in 30s..."
-        sleep 30
-      done
-      echo "ERROR: oak-ci #{version} not available on PyPI after 5 attempts"
-      exit 1
-    SH
+    # Install from the pre-built wheel. The main package is local; only
+    # dependencies are fetched from PyPI. This runs AFTER Homebrew's
+    # linkage-fixup phase so native wheels (cryptography, grpcio,
+    # onnxruntime) aren't subjected to Mach-O header rewriting.
+    wheel = Dir["#{libexec}/.wheels/oak_ci-*.whl"].first
+    odie "Pre-built wheel not found in #{libexec}/.wheels" unless wheel
+    system libexec/"bin/pip", "install", wheel
   end
 
   test do
