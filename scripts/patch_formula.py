@@ -30,7 +30,7 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
       url "{url}"
       sha256 "{sha256}"
       license "MIT"
-    {conflicts_with}
+
       depends_on "python@3.13"
 
       def install
@@ -51,11 +51,11 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
         # We can't use bin.install_symlink because the target doesn't exist yet
         # (pip install runs in post_install) and Homebrew's link phase runs
         # between install and post_install — dangling symlinks get dropped.
-        (bin/"oak").write <<~SH
+        (bin/"{bin_name}").write <<~SH
           #!/bin/bash
           exec "#{{libexec}}/bin/oak" "$@"
         SH
-        (bin/"oak").chmod 0755
+        (bin/"{bin_name}").chmod 0755
       end
 
       def post_install
@@ -69,11 +69,22 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
       end
 
       test do
-        assert_match version.to_s, shell_output("#{{bin}}/oak version")
-        assert_match "Open Agent Kit", shell_output("#{{bin}}/oak --help")
+        assert_match version.to_s, shell_output("#{{bin}}/{bin_name} version")
+        assert_match "Open Agent Kit", shell_output("#{{bin}}/{bin_name} --help")
       end
     end
 """)
+
+
+def binary_name(formula_name: str) -> str:
+    """Derive the installed binary name from the formula name.
+
+    Examples:
+        "oak-ci"      -> "oak"
+        "oak-ci-beta" -> "oak-beta"
+    """
+    suffix = formula_name.replace("oak-ci", "").lstrip("-")
+    return f"oak-{suffix}" if suffix else "oak"
 
 
 def formula_class_name(formula_name: str) -> str:
@@ -84,13 +95,6 @@ def formula_class_name(formula_name: str) -> str:
         "oak-ci-beta" -> "OakCiBeta"
     """
     return "".join(part.capitalize() for part in formula_name.split("-"))
-
-
-def conflicts_with_line(formula_name: str) -> str:
-    """Return a conflicts_with line for non-stable formulas, or empty string."""
-    if formula_name == "oak-ci":
-        return ""
-    return '  conflicts_with "oak-ci", because: "both install the oak binary"\n'
 
 
 def get_pypi_info(version: str) -> tuple[str, str]:
@@ -128,14 +132,15 @@ def main() -> None:
         print(f"Fetching PyPI metadata for oak-ci {args.version}...")
         url, sha256 = get_pypi_info(args.version)
 
+    bin_name = binary_name(args.formula_name)
     formula = FORMULA_TEMPLATE.format(
         class_name=formula_class_name(args.formula_name),
-        conflicts_with=conflicts_with_line(args.formula_name),
+        bin_name=bin_name,
         url=url,
         sha256=sha256,
     )
     args.output.write_text(formula)
-    print(f"Wrote {args.formula_name} formula to {args.output}")
+    print(f"Wrote {args.formula_name} formula (binary: {bin_name}) to {args.output}")
 
 
 if __name__ == "__main__":
