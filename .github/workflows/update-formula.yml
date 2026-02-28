@@ -1,11 +1,15 @@
-name: Update oak-ci formula
+name: Update Homebrew formula
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to update to (e.g., 1.0.5)"
+        description: "Version to update to (e.g., 1.0.5 or 1.1.0b1)"
         required: true
+      formula:
+        description: "Formula to update (oak-ci or oak-ci-beta)"
+        required: false
+        default: "oak-ci"
 
 permissions:
   contents: write
@@ -29,9 +33,11 @@ jobs:
           # Use pip download (hits the simple index, same as pip install)
           # rather than pip index versions (hits the JSON API) to verify
           # the package is actually installable, not just listed.
+          # The --pre flag is included so pre-release versions are found
+          # when an exact version specifier is used.
           tmpdir=$(mktemp -d)
           for i in $(seq 1 20); do
-            if pip download --no-deps "oak-ci==$TARGET_VERSION" -d "$tmpdir" 2>/dev/null; then
+            if pip download --no-deps --pre "oak-ci==$TARGET_VERSION" -d "$tmpdir" 2>/dev/null; then
               echo "oak-ci $TARGET_VERSION downloadable from PyPI"
               rm -rf "$tmpdir"
               exit 0
@@ -46,20 +52,25 @@ jobs:
       - name: Generate formula
         env:
           TARGET_VERSION: ${{ inputs.version }}
+          FORMULA_NAME: ${{ inputs.formula }}
         run: |
-          python3 scripts/patch_formula.py Formula/oak-ci.rb \
-            --version "$TARGET_VERSION"
+          python3 scripts/patch_formula.py "Formula/${FORMULA_NAME}.rb" \
+            --version "$TARGET_VERSION" \
+            --formula-name "$FORMULA_NAME"
 
       - name: Validate formula
+        env:
+          FORMULA_NAME: ${{ inputs.formula }}
         run: |
-          brew audit --formula Formula/oak-ci.rb || true
+          brew audit --formula "Formula/${FORMULA_NAME}.rb" || true
 
       - name: Commit and push
         env:
           TARGET_VERSION: ${{ inputs.version }}
+          FORMULA_NAME: ${{ inputs.formula }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/oak-ci.rb
-          git diff --staged --quiet || git commit -m "Update oak-ci to $TARGET_VERSION"
+          git add "Formula/${FORMULA_NAME}.rb"
+          git diff --staged --quiet || git commit -m "Update ${FORMULA_NAME} to ${TARGET_VERSION}"
           git push
