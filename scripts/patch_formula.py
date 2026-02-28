@@ -3,9 +3,11 @@
 
 Usage:
     python scripts/patch_formula.py Formula/oak-ci.rb \
-        --version 1.0.5 \
-        --url "https://files.pythonhosted.org/packages/.../oak_ci-1.0.5.tar.gz" \
-        --sha256 "abc123..."
+        --version 1.0.5
+
+    python scripts/patch_formula.py Formula/oak-ci-beta.rb \
+        --version 1.1.0b1 \
+        --formula-name oak-ci-beta
 
 This script updates the formula to use the pip-in-venv install strategy
 (pre-built wheels) instead of resource stanzas, avoiding build failures
@@ -20,7 +22,7 @@ import textwrap
 from pathlib import Path
 
 FORMULA_TEMPLATE = textwrap.dedent("""\
-    class OakCi < Formula
+    class {class_name} < Formula
       include Language::Python::Virtualenv
 
       desc "Codebase intelligence toolkit for development workflows"
@@ -28,7 +30,7 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
       url "{url}"
       sha256 "{sha256}"
       license "MIT"
-
+    {conflicts_with}
       depends_on "python@3.13"
 
       def install
@@ -74,6 +76,23 @@ FORMULA_TEMPLATE = textwrap.dedent("""\
 """)
 
 
+def formula_class_name(formula_name: str) -> str:
+    """Convert formula name to Ruby class name.
+
+    Examples:
+        "oak-ci"      -> "OakCi"
+        "oak-ci-beta" -> "OakCiBeta"
+    """
+    return "".join(part.capitalize() for part in formula_name.split("-"))
+
+
+def conflicts_with_line(formula_name: str) -> str:
+    """Return a conflicts_with line for non-stable formulas, or empty string."""
+    if formula_name == "oak-ci":
+        return ""
+    return '  conflicts_with "oak-ci", because: "both install the oak binary"\n'
+
+
 def get_pypi_info(version: str) -> tuple[str, str]:
     """Fetch the sdist URL and sha256 from PyPI for the given version."""
     import json
@@ -94,6 +113,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Generate oak-ci Homebrew formula")
     parser.add_argument("output", type=Path, help="Path to write the formula")
     parser.add_argument("--version", required=True, help="Package version")
+    parser.add_argument(
+        "--formula-name",
+        default="oak-ci",
+        help="Homebrew formula name (default: oak-ci). Use 'oak-ci-beta' for the beta channel.",
+    )
     parser.add_argument("--url", help="Override sdist URL (fetched from PyPI if omitted)")
     parser.add_argument("--sha256", help="Override sha256 (fetched from PyPI if omitted)")
     args = parser.parse_args()
@@ -104,9 +128,14 @@ def main() -> None:
         print(f"Fetching PyPI metadata for oak-ci {args.version}...")
         url, sha256 = get_pypi_info(args.version)
 
-    formula = FORMULA_TEMPLATE.format(url=url, sha256=sha256)
+    formula = FORMULA_TEMPLATE.format(
+        class_name=formula_class_name(args.formula_name),
+        conflicts_with=conflicts_with_line(args.formula_name),
+        url=url,
+        sha256=sha256,
+    )
     args.output.write_text(formula)
-    print(f"Wrote formula to {args.output}")
+    print(f"Wrote {args.formula_name} formula to {args.output}")
 
 
 if __name__ == "__main__":
