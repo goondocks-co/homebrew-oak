@@ -6,7 +6,6 @@ class OakCiBeta < Formula
   url "https://files.pythonhosted.org/packages/ba/21/aa1e0332ff7ba09747af9c0b0a2f9f494a3a66b6f268ac063a3563c7abe9/oak_ci-1.3.4.tar.gz"
   sha256 "fdadb7d52c433c1d416b0d917df4a3d4b68e7aa688bd5d657190155d4b34ac5a"
   license "MIT"
-  conflicts_with "oak-ci", because: "both install the oak binary"
 
   depends_on "python@3.13"
 
@@ -28,11 +27,11 @@ class OakCiBeta < Formula
     # We can't use bin.install_symlink because the target doesn't exist yet
     # (pip install runs in post_install) and Homebrew's link phase runs
     # between install and post_install — dangling symlinks get dropped.
-    (bin/"oak").write <<~SH
+    (bin/"oak-beta").write <<~SH
       #!/bin/bash
       exec "#{libexec}/bin/oak" "$@"
     SH
-    (bin/"oak").chmod 0755
+    (bin/"oak-beta").chmod 0755
   end
 
   def post_install
@@ -46,7 +45,7 @@ class OakCiBeta < Formula
   end
 
   test do
-    assert_match version.to_s, shell_output("#{bin}/oak version")
-    assert_match "Open Agent Kit", shell_output("#{bin}/oak --help")
+    assert_match version.to_s, shell_output("#{bin}/oak-beta version")
+    assert_match "Open Agent Kit", shell_output("#{bin}/oak-beta --help")
   end
 end
