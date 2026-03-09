@@ -3,8 +3,8 @@ class OakCi < Formula
 
   desc "Codebase intelligence toolkit for development workflows"
   homepage "https://github.com/goondocks-co/open-agent-kit"
-  url "https://files.pythonhosted.org/packages/66/b8/2d4c0132b95347d2cfd082d393ece97784dcced6a3473dbb97ce072fc191/oak_ci-1.5.2.tar.gz"
-  sha256 "7b8d0764ca1150db2d68f5d7d70c19a139c74861507937394c52e9ffd6198d61"
+  url "https://files.pythonhosted.org/packages/eb/09/924a05a02d405ef317ec8d40f9e148016e587dccf9aa0db572bb8a870cc1/oak_ci-1.5.3.tar.gz"
+  sha256 "73b64d4fb52d2c98a1513950cc70ebd04e45a788f919d0cd9a97f0b2bfcaf5d7"
   license "MIT"
 
   depends_on "python@3.13"
